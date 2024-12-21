@@ -26,6 +26,17 @@
           >
             社团活动
           </button>
+          <button
+            @click="currentSystem = 'library'"
+            :class="[
+              'px-4 py-2 rounded-md text-sm font-medium',
+              currentSystem === 'library'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-700 hover:bg-gray-100'
+            ]"
+          >
+            图书借阅
+          </button>
         </div>
       </div>
     </nav>
@@ -35,7 +46,7 @@
         <slot name="course-content"></slot>
       </div>
 
-      <div v-else class="space-y-6">
+      <div v-else-if="currentSystem === 'club'" class="space-y-6">
         <!-- 活动类型筛选 -->
         <div class="flex space-x-4 mb-4">
           <button
@@ -151,6 +162,10 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <div v-else-if="currentSystem === 'library'" class="space-y-6">
+        <slot name="library-content"></slot>
       </div>
     </main>
   </div>
