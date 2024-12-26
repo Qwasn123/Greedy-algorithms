@@ -78,6 +78,180 @@ aixinpaike/
 └── package.json          # 项目配置
 ```
 
+## 算法实现
+
+系统采用多种高效算法来解决不同场景下的资源分配和调度问题：
+
+### 活动调度算法 (Activity Scheduling)
+- **贪心算法**: 用于社团活动的时间和场地分配
+- **回溯算法**: 处理复杂的活动调度约束
+- 主要功能：
+  - 自动检测时间冲突
+  - 优化场地利用率
+  - 满足活动场地需求
+  - 生成最优活动时间表
+
+关键代码实现：
+```typescript
+// 贪心算法：尽可能多地安排活动
+function scheduleActivitiesGreedy(
+  activities: ScheduledActivity[],
+  rooms: RoomSchedule
+): ScheduledActivity[] {
+  const scheduled: ScheduledActivity[] = [];
+  const tempRooms = { ...rooms };
+  
+  // 遍历每个活动
+  for (const activity of activities) {
+    // 遍历每一天
+    for (let day = 1; day <= 5 && !scheduled; day++) {
+      // 遍历每个可能的开始时间
+      for (let startTime = 8; startTime <= 17 && !scheduled; startTime++) {
+        const endTime = startTime + activity.duration;
+        // 尝试在每个房间安排
+        for (const room in tempRooms) {
+          if (canScheduleAtTime(activity, room, day, startTime, endTime, tempRooms)) {
+            // 安排活动
+            activity.assignedRoom = room;
+            activity.schedule = { day, startTime, endTime };
+            tempRooms[room].push(activity);
+            scheduled = true;
+            break;
+          }
+        }
+      }
+    }
+  }
+  return scheduled;
+}
+```
+
+### 课程选择算法 (Course Selection)
+- **贪心算法**: 实现课程分配和推荐
+- 核心特性：
+  - 基于优先级的课程分配
+  - 自动处理时间冲突
+  - 智能课程推荐
+  - 学分优化分配
+
+关键代码实现：
+```typescript
+export function allocateCourses(
+  applications: CourseApplication[],
+  courses: Map<number, Course>,
+  students: Map<number, Student>
+): CourseResult[] {
+  // 按优先级和时间戳排序
+  const sortedApplications = [...applications].sort((a, b) => {
+    if (a.priority !== b.priority) {
+      return b.priority - a.priority; // 高优先级优先
+    }
+    return a.timestamp - b.timestamp; // 早提交优先
+  });
+
+  const results: CourseResult[] = [];
+  const courseEnrollments = new Map<number, number>();
+  const studentSelections = new Map<number, number[]>();
+
+  // 处理每个申请
+  for (const app of sortedApplications) {
+    const course = courses.get(app.courseId);
+    const student = students.get(app.studentId);
+    
+    // 检查课程容量和时间冲突
+    if (isValidSelection(course, student, courseEnrollments, studentSelections)) {
+      // 分配课程
+      courseEnrollments.set(app.courseId, courseEnrollments.get(app.courseId)! + 1);
+      studentSelections.get(app.studentId)!.push(app.courseId);
+      results.push({ status: 'success' });
+    }
+  }
+  return results;
+}
+```
+
+### 图书借阅规划 (Book Planning)
+- **回溯算法**: 生成最优借阅计划
+- 关键功能：
+  - 借阅时间冲突检测
+  - 借阅周期优化
+  - 资源利用最大化
+
+关键代码实现：
+```typescript
+function generateBorrowPlan(selectedBooks: Book[]): BorrowPlan[] {
+  const plan: BorrowPlan[] = [];
+  let currentDay = 0;
+
+  for (const book of selectedBooks) {
+    // 找到最早可借时间
+    while (!isValidPlan(plan, { 
+      bookId: book.id,
+      startDay: currentDay + book.availableIn,
+      endDay: currentDay + book.availableIn + book.readDays 
+    })) {
+      currentDay++;
+    }
+
+    // 添加到借阅计划
+    plan.push({
+      bookId: book.id,
+      startDay: currentDay + book.availableIn,
+      endDay: currentDay + book.availableIn + book.readDays
+    });
+  }
+
+  return plan;
+}
+```
+
+### 课程分配算法 (Course Allocation)
+- **贪心算法**: 教室和时间段分配
+- 实现特点：
+  - 教室容量优化
+  - 时间段合理分配
+  - 教学资源最大化利用
+
+### 课程推荐系统 (Course Recommendation)
+- **基于权重的贪心算法**
+- 推荐特性：
+  - 个性化课程推荐
+  - 学分要求优化
+  - 兴趣匹配度计算
+
+关键代码实现：
+```typescript
+function recommendCourseSet(
+  courses: Course[],
+  targetCredits: number,
+  preferenceMode: 'recommend' | 'minimum' = 'recommend'
+): { courses: Course[]; totalCredits: number; totalWeight: number } {
+  // 计算每门课程的权重
+  const weightedCourses = courses.map(course => ({
+    ...course,
+    weight: calculateCourseWeight(course, preferenceMode)
+  }));
+
+  // 按权重排序
+  weightedCourses.sort((a, b) => b.weight - a.weight);
+
+  const selectedCourses: Course[] = [];
+  let totalCredits = 0;
+  let totalWeight = 0;
+
+  // 贪心选择课程
+  for (const course of weightedCourses) {
+    if (totalCredits + course.credits <= targetCredits) {
+      selectedCourses.push(course);
+      totalCredits += course.credits;
+      totalWeight += course.weight;
+    }
+  }
+
+  return { courses: selectedCourses, totalCredits, totalWeight };
+}
+```
+
 ## 系统要求
 
 - Node.js 16.0 或更高版本
